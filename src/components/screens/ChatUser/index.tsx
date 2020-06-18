@@ -6,9 +6,9 @@ import {StyleRuleSetRecursive, ViewStyleRuleSet} from 'reactxp/src/common/Types'
 import {aChat, aScreen} from '../../../actions';
 import {dispatch} from '../../../config/store';
 import {NavContext} from '../../contexts';
-import {ResponseInviteProps, routes} from '../../../config/types';
+import {ReducerUserProps, ResponseInviteProps, routes, ScreenProps} from '../../../config/types';
 import {SidebarType} from '../../template/Sidebar/types';
-import {ChatUserScreenProps, ChatUserScreenState} from './types';
+import {ChatUserScreenState} from './types';
 import {sInvite, sScreen, sUser, sWebSocket} from '../../../services';
 import {Layout, Sidebar} from '../../template';
 import {ChatUserMessages} from './Messages';
@@ -17,7 +17,7 @@ import {SidebarProfile} from '../../user';
 import {ChatUserForm} from './Form';
 import * as styles from '../../../styles';
 
-class _ChatUserScreen extends RX.Component<ChatUserScreenProps, ChatUserScreenState> {
+class _ChatUserScreen extends RX.Component<ScreenProps, ChatUserScreenState> {
 
   static contextType = NavContext;
   readInterval: number;
@@ -32,7 +32,7 @@ class _ChatUserScreen extends RX.Component<ChatUserScreenProps, ChatUserScreenSt
   }
 
   componentDidUpdate(
-    prevProps: ChatUserScreenProps,
+    prevProps: ScreenProps,
     prevState: ChatUserScreenState
   ) {
     this._getData(prevProps);
@@ -74,7 +74,7 @@ class _ChatUserScreen extends RX.Component<ChatUserScreenProps, ChatUserScreenSt
     }, 1000);
   };
 
-  private _getData(prevProps?: ChatUserScreenProps) {
+  private _getData(prevProps?: ScreenProps) {
     const {rScreen} = this.props;
     const {userId, inviteId, routeId} = rScreen;
 
@@ -83,12 +83,19 @@ class _ChatUserScreen extends RX.Component<ChatUserScreenProps, ChatUserScreenSt
     }
 
     const isDiffUser = !prevProps || prevProps.rScreen.userId !== userId;
+
     if (isDiffUser) {
-      sUser.getProfile(userId);
+      sUser.getProfile(userId, (user: ReducerUserProps) => {
+        sScreen.setMeta({
+          routeId: rScreen.routeId,
+          title: user.name
+        });
+      });
     }
 
     const isLoading = rScreen.loaders.includes('ChatUser');
     const isDiffInvite = !prevProps || prevProps.rScreen.inviteId !== inviteId;
+
     if (inviteId && isDiffInvite && !isLoading) {
       dispatch(aScreen.setLoading('ChatUser'));
       sInvite.getById(inviteId, this.context).then(
@@ -121,7 +128,7 @@ class _ChatUserScreen extends RX.Component<ChatUserScreenProps, ChatUserScreenSt
           {minFull && (
             <Sidebar
               style={styles.sidebar.adaptive(type)}
-              parent={this.props}
+              rScreen={rScreen}
               type={type}
               isSticky
             >
@@ -156,12 +163,12 @@ class _ChatUserScreen extends RX.Component<ChatUserScreenProps, ChatUserScreenSt
           </RX.ScrollView>
           {minFull && (
             <Sidebar
-              parent={this.props}
+              rScreen={rScreen}
               type={show.friends ? null : 'light'}
               isRight
               isSticky
             >
-              <ChatFriends parent={this.props} sortBy={rSearch.sortBy}/>
+              <ChatFriends screen={this.props} sortBy={rSearch.sortBy}/>
             </Sidebar>
           )}
         </RX.View>
@@ -171,7 +178,7 @@ class _ChatUserScreen extends RX.Component<ChatUserScreenProps, ChatUserScreenSt
 
 }
 
-const mapStateToProps = (state: ChatUserScreenProps) => {
+const mapStateToProps = (state: ScreenProps) => {
   return {
     rScreen: state.rScreen,
     rNotify: state.rNotify,
@@ -183,7 +190,7 @@ const mapStateToProps = (state: ChatUserScreenProps) => {
   };
 };
 
-export const ChatUserScreen = connect<ChatUserScreenProps, any>(
+export const ChatUserScreen = connect<ScreenProps, any>(
   mapStateToProps,
   null
 )(_ChatUserScreen);

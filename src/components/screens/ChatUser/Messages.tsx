@@ -39,7 +39,7 @@ const _ChatUserMessages: React.FC<ChatUserMessagesProps> = (
         dispatch(aChat.setChat({messages, page: 0}));
         dispatch(aScreen.setLoading('ChatMessages', false));
       });
-  }, [userId, isFocused]);
+  }, [sid, userId, isFocused, navigate]);
 
   useEffect(getData, []);
   useEffect(getData, [userId]);
@@ -83,7 +83,10 @@ const _ChatUserMessages: React.FC<ChatUserMessagesProps> = (
         </RX.View>
       );
     });
-  }, [rChat.messages, rProfile]);
+  }, [
+    rChat, rChat.messages.length, rProfile, rProfile.id,
+    rUser, rUser.id, rScreen
+  ]);
 
   const onPressMoreBtn = useCallback(() => {
     const nextPage = rChat.page + 1;
@@ -105,7 +108,7 @@ const _ChatUserMessages: React.FC<ChatUserMessagesProps> = (
         }
       }
     );
-  }, [userId, rChat.page]);
+  }, [sid, userId, navigate, rChat.page, rChat.messages.length]);
 
   return (
     <Loader

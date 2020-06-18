@@ -1,6 +1,6 @@
 import React, {memo, useCallback, useContext, useMemo, useRef, useState} from 'react';
 import * as RX from 'reactxp';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 import {aChat, aUser} from '../../../actions';
 import {dispatch} from '../../../config/store';
@@ -28,6 +28,7 @@ const _ChatUserForm: React.FC<ChatUserFormProps> = (
 
   const ws = useContext(WSContext);
   const messageInput = useRef<TextInputCountedProps>();
+  const photo = get(rProfile, 'photos[0]');
 
   const [message, setMessage] = useState('');
   const [textHeight, setTextHeight] = useState(0);
@@ -39,11 +40,7 @@ const _ChatUserForm: React.FC<ChatUserFormProps> = (
   const inBlacklist = blacklist ? blacklist.includes(rProfile.id) : false;
   const isMessageAvailable = !isBlacklisted && !inBlacklist;
 
-  const photo = useMemo(() => get(rProfile, 'photos[0]'),
-    [rProfile.id]
-  );
-
-  const renderPhoto = () => useMemo(() =>
+  const renderPhoto = useCallback(() =>
       sFormat.photo(photo, rProfile.gender, 'min'),
     [photo, rProfile.gender]
   );
@@ -65,7 +62,7 @@ const _ChatUserForm: React.FC<ChatUserFormProps> = (
         id: invite.id,
         title: invite.title,
       },
-      createdAt: moment(new Date()).format(),
+      createdAt: dayjs(new Date()).format(),
       text: message,
       sender: sUser.reducerToUserMessageProps(rUser),
       recipient: sUser.reducerToUserMessageProps(rProfile),
@@ -78,14 +75,14 @@ const _ChatUserForm: React.FC<ChatUserFormProps> = (
       dispatch(aChat.addMessage(listMessage));
       setMessage('');
     }
-  }, [userId, message, invite, rProfile.id]);
+  }, [ws, userId, message, invite, rUser, rProfile]);
 
   const onKeyPress = useCallback((e: RX.Types.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSendMessage();
     }
-  }, [userId]);
+  }, [onSendMessage]);
 
   const onPressExchangePhones = useCallback(() => {
     sModal.showConfirm('Обменяться телефонами?', {
@@ -94,12 +91,12 @@ const _ChatUserForm: React.FC<ChatUserFormProps> = (
           type: 'phoneExchangeProposal',
           sender: selfId,
           recipient: rProfile.id,
-          createdAt: moment(new Date()).format()
+          createdAt: dayjs(new Date()).format()
         };
 
         const listMessage: ChatMessageProps = {
           type: 'phoneExchangeProposal',
-          createdAt: moment(new Date()).format(),
+          createdAt: dayjs(new Date()).format(),
           sender: sUser.reducerToUserMessageProps(rUser),
           recipient: sUser.reducerToUserMessageProps(rProfile),
           readAt: null
@@ -113,7 +110,7 @@ const _ChatUserForm: React.FC<ChatUserFormProps> = (
         }
       }
     });
-  }, [userId, rProfile.id]);
+  }, [ws, userId, selfId, rProfile, rProfile.id, rUser]);
 
   const onPressBlockUser = useCallback(() => {
     sModal.showConfirm('Запретить отправку сообщений?', {
@@ -131,7 +128,7 @@ const _ChatUserForm: React.FC<ChatUserFormProps> = (
         }
       }
     });
-  }, [userId, blacklist]);
+  }, [ws, userId, blacklist, blacklist.length]);
 
   const onPressUnblockUser = useCallback(() => {
     sModal.showConfirm('Разрешить отправку сообщений?', {
@@ -150,7 +147,7 @@ const _ChatUserForm: React.FC<ChatUserFormProps> = (
         }
       }
     });
-  }, [userId, blacklist]);
+  }, [ws, userId, blacklist, blacklist.length]);
 
   return (
     <RX.View style={css.formContainer()}>

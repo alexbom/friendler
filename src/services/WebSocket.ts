@@ -1,4 +1,4 @@
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 import {aChat, aProfile, aUser} from '../actions';
 import {HOST} from '../config/constants';
@@ -30,13 +30,12 @@ export const connection = (props: ConnectionProps): WebSocket => {
 
 export const readMessages = (
   messages: ChatMessageProps[],
-  userId: number,
+  userId?: number,
   readAt?: string
 ): ChatMessageProps[] => messages.map(m => {
   const senderId = get(m, 'sender.id');
-  const recipientId = get(m, 'recipient.id');
 
-  if (!m.readAt && (senderId === userId || recipientId === userId)) {
+  if (!m.readAt && (!userId || userId === senderId)) {
     m.readAt = readAt || new Date().getTime().toString();
   }
 
@@ -71,13 +70,13 @@ export const phoneExchangeAccept = (
     type: 'phoneExchangeAccept',
     sender: rUser.id,
     recipient: rScreen.userId,
-    createdAt: moment(new Date()).format(),
+    createdAt: dayjs(new Date()).format(),
     options: {requestId: props.options.requestId}
   };
 
   const listMessage: ChatMessageProps = {
     type: 'phoneExchangeAccept',
-    createdAt: moment(new Date()).format(),
+    createdAt: dayjs(new Date()).format(),
     sender: props.recipient,
     recipient: props.sender,
     readAt: null
@@ -98,12 +97,12 @@ export const phoneExchangeDecline = (
     type: 'phoneExchangeDecline',
     sender: rUser.id,
     recipient: rScreen.userId,
-    createdAt: moment(new Date()).format()
+    createdAt: dayjs(new Date()).format()
   };
 
   const listMessage: ChatMessageProps = {
     type: 'phoneExchangeDecline',
-    createdAt: moment(new Date()).format(),
+    createdAt: dayjs(new Date()).format(),
     sender: props.recipient,
     recipient: props.sender,
     readAt: null
@@ -123,7 +122,7 @@ export const onMessage = (
 
   if (data.type === 'chatMessageRead') {
     if (data.userId === userId) {
-      dispatch(aChat.markAsRead(userId));
+      dispatch(aChat.markAsRead());
     }
     return;
   } else if (data.type === 'isOnline') {

@@ -23,28 +23,11 @@ const _WebSocketContainer: React.FC<WebSocketContainerProps> = (
   const navigate = useContext(NavContext);
   const prevSid = usePrevious(sid);
 
-  useEffect(() => {
-    openConnection();
-
-    return () => {
-      closeConnection();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (sid && prevSid && sid !== prevSid) {
-      closeConnection();
-      openConnection();
-    } else if (!sid) {
-      closeConnection();
-    }
-  }, [sid]);
-
   const clearUnreadInterval = useCallback(() => {
     if (unreadInterval) {
       clearInterval(unreadInterval);
     }
-  }, [sid]);
+  }, [unreadInterval]);
 
   const closeConnection = useCallback(() => {
     clearUnreadInterval();
@@ -52,26 +35,24 @@ const _WebSocketContainer: React.FC<WebSocketContainerProps> = (
     if (ws && ws.readyState === WSReadyState.open) {
       ws.close();
     }
-  }, [sid]);
+  }, [ws, clearUnreadInterval]);
+
+  const onOpen = useCallback(() => {
+    unreadInterval = window.setInterval(() => {
+      dispatch(aChat.getUnread(sid, navigate));
+    }, 1000 * 10);
+  }, [sid, navigate]);
 
   const onMessage = useCallback(e => {
     sWebSocket.onMessage(e.data, userId, blacklisted);
-  }, [userId, blacklisted]);
+  }, [userId, blacklisted, blacklisted]);
 
   const onError = useCallback(e => {
     console.error(e);
     /*Raven.captureException(new Error('WebSocket Error'), {
       tags: {userId: userId as any}
     });*/
-  }, [sid]);
-
-  const onOpen = useCallback(() => {
-    unreadInterval = window.setInterval(() => {
-      dispatch(aChat.getUnread(sid, navigate));
-    }, 1000 * 10);
-  }, [sid]);
-
-  const getWS = useCallback((): WebSocket => ws, [sid]);
+  }, []);
 
   const openConnection = useCallback(() => {
     if (!sid) {
@@ -90,7 +71,26 @@ const _WebSocketContainer: React.FC<WebSocketContainerProps> = (
       onerror: onError,
       onclose: closeConnection,
     });
-  }, [sid]);
+  }, [ws, sid, onMessage, onOpen, onError, closeConnection]);
+
+  useEffect(() => {
+    openConnection();
+
+    return () => {
+      closeConnection();
+    };
+  }, [openConnection, closeConnection]);
+
+  useEffect(() => {
+    if (sid && prevSid && sid !== prevSid) {
+      closeConnection();
+      openConnection();
+    } else if (!sid) {
+      closeConnection();
+    }
+  }, [sid, prevSid, openConnection, closeConnection]);
+
+  const getWS = useCallback((): WebSocket => ws, [ws]);
 
   return (
     <WSContext.Provider value={getWS}>
